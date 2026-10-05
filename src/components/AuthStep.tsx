@@ -1,84 +1,155 @@
 import { useState } from "react";
-import { card, primaryBtn, inputStyle, labelStyle } from "../styles/shared";
+import { CheckoutState } from "../App";
+import { Card } from "./Card";
 
 interface Props {
-  onAuthenticated: () => void;
-  onGuest: () => void;
+  isLoggedIn: boolean;
+  guestEmail: string;
+  onUpdate: (v: Partial<CheckoutState>) => void;
+  onNext: () => void;
 }
 
-export const __preview: Props = {
-  onAuthenticated: () => {},
-  onGuest: () => {},
+export const __preview = {
+  isLoggedIn: false,
+  guestEmail: "",
+  onUpdate: () => {},
+  onNext: () => {},
 };
 
-export function AuthStep({ onAuthenticated, onGuest }: Props) {
-  const [mode, setMode] = useState<"choose" | "signin">("choose");
-  const [email, setEmail] = useState("");
+export function AuthStep({ isLoggedIn, guestEmail, onUpdate, onNext }: Props) {
+  const [mode, setMode] = useState<"login" | "guest">("login");
+  const [email, setEmail] = useState(guestEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  function handleSignIn(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!email.includes("@") || password.length < 6) {
-      setError("Please enter a valid email and password (min 6 chars).");
+    if (!email.trim() || !email.includes("@")) {
+      setError("Please enter a valid email address.");
       return;
     }
-    // Simulated WAF → App → DB flow; credentials validated client-side for demo
-    onAuthenticated();
+    if (mode === "login" && password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    onUpdate({
+      isLoggedIn: mode === "login",
+      guestEmail: mode === "guest" ? email : "",
+    });
+    onNext();
   }
 
-  if (mode === "choose") {
+  if (isLoggedIn) {
     return (
-      <div style={card}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>How would you like to continue?</h2>
-        <p style={{ color: "#6e6e73", marginBottom: 28 }}>Sign in for faster checkout or continue as a guest.</p>
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          <button style={{ ...primaryBtn, flex: 1 }} onClick={() => setMode("signin")}>Sign In</button>
-          <button style={{ ...primaryBtn, flex: 1, background: "#f5f5f7", color: "#1d1d1f", border: "1px solid #e5e5ea" }} onClick={onGuest}>
-            Continue as Guest
-          </button>
-        </div>
-      </div>
+      <Card title="Sign In">
+        <p style={{ color: "#2e7d32", fontWeight: 600 }}>✓ You are already signed in.</p>
+        <button onClick={onNext} style={PRIMARY_BTN}>Continue</button>
+      </Card>
     );
   }
 
   return (
-    <div style={card}>
-      <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>Sign In</h2>
-      <form onSubmit={handleSignIn} noValidate>
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>Email address</label>
-          <input
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            style={inputStyle}
-            placeholder="you@example.com"
-            required
-          />
-        </div>
-        <div style={{ marginBottom: 24 }}>
-          <label style={labelStyle}>Password</label>
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            style={inputStyle}
-            placeholder="••••••••"
-            required
-          />
-        </div>
-        {error && <p style={{ color: "#ff3b30", marginBottom: 16, fontSize: 14 }}>{error}</p>}
-        <div style={{ display: "flex", gap: 12 }}>
-          <button type="submit" style={{ ...primaryBtn, flex: 1 }}>Sign In →</button>
-          <button type="button" style={{ ...primaryBtn, flex: 1, background: "#f5f5f7", color: "#1d1d1f", border: "1px solid #e5e5ea" }} onClick={() => setMode("choose")}>
-            Back
+    <Card title="Sign In or Continue as Guest">
+      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+        {(["login", "guest"] as const).map((m) => (
+          <button
+            key={m}
+            onClick={() => { setMode(m); setError(""); }}
+            style={{
+              flex: 1,
+              padding: "10px",
+              border: `2px solid ${mode === m ? "#1976d2" : "#ccc"}`,
+              borderRadius: 6,
+              background: mode === m ? "#e3f0fc" : "#fff",
+              fontWeight: mode === m ? 700 : 400,
+              cursor: "pointer",
+              fontSize: 14,
+            }}
+          >
+            {m === "login" ? "Sign In" : "Continue as Guest"}
           </button>
-        </div>
+        ))}
+      </div>
+      <form onSubmit={handleSubmit} noValidate>
+        <Field
+          label="Email address"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          autoComplete="email"
+          required
+        />
+        {mode === "login" && (
+          <Field
+            label="Password"
+            type="password"
+            value={password}
+            onChange={setPassword}
+            autoComplete="current-password"
+            required
+          />
+        )}
+        {error && (
+          <p role="alert" style={{ color: "#c62828", fontSize: 13, marginBottom: 12 }}>
+            {error}
+          </p>
+        )}
+        <p style={{ fontSize: 12, color: "#888", marginBottom: 16 }}>
+          🔒 Credentials are transmitted over HTTPS and filtered by WAF before reaching the application layer.
+        </p>
+        <button type="submit" style={PRIMARY_BTN}>
+          {mode === "login" ? "Sign In & Continue" : "Continue as Guest →"}
+        </button>
       </form>
+    </Card>
+  );
+}
+
+interface FieldProps {
+  label: string;
+  type: string;
+  value: string;
+  onChange: (v: string) => void;
+  autoComplete?: string;
+  required?: boolean;
+}
+
+function Field({ label, type, value, onChange, autoComplete, required }: FieldProps) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+        {label} {required && <span style={{ color: "#c62828" }}>*</span>}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        autoComplete={autoComplete}
+        required={required}
+        style={INPUT}
+      />
     </div>
   );
 }
+
+const INPUT: React.CSSProperties = {
+  width: "100%",
+  padding: "10px 12px",
+  border: "1px solid #ccc",
+  borderRadius: 6,
+  fontSize: 15,
+  outline: "none",
+};
+
+const PRIMARY_BTN: React.CSSProperties = {
+  background: "#1976d2",
+  color: "#fff",
+  border: "none",
+  borderRadius: 6,
+  padding: "13px 28px",
+  fontSize: 15,
+  fontWeight: 700,
+  cursor: "pointer",
+  width: "100%",
+};
