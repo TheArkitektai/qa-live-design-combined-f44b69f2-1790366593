@@ -1,86 +1,65 @@
-import { Step } from "../App";
-
-interface Props {
-  steps: Step[];
-  currentStep: Step;
-  labels: Record<Step, string>;
+export interface ProgressBarProps {
+  steps: string[];
+  currentIndex: number;
 }
 
-export const __preview = {
-  steps: ["cart", "auth", "shipping", "delivery", "payment", "review"] as Step[],
-  currentStep: "shipping" as Step,
-  labels: {
-    cart: "Cart",
-    auth: "Sign In",
-    shipping: "Shipping",
-    delivery: "Delivery",
-    payment: "Payment",
-    review: "Review",
-    confirmation: "Confirmed",
-  } as Record<Step, string>,
+export const __preview: ProgressBarProps = {
+  steps: ["Cart", "Sign In", "Shipping", "Delivery", "Payment", "Confirmation"],
+  currentIndex: 2,
 };
 
-export function ProgressBar({ steps, currentStep, labels }: Props) {
-  const currentIndex = steps.indexOf(currentStep);
-
+export function ProgressBar({ steps, currentIndex }: ProgressBarProps) {
   return (
     <nav
       aria-label="Checkout progress"
-      style={{
-        background: "#fff",
-        borderBottom: "1px solid #e0e0e0",
-        padding: "0 16px",
-      }}
+      style={{ background: "#fff", borderBottom: "1px solid #e0e0e0", padding: "0.75rem 1rem" }}
     >
       <ol
         style={{
           display: "flex",
           listStyle: "none",
-          maxWidth: 760,
+          justifyContent: "center",
+          flexWrap: "wrap",
+          gap: "0.25rem",
+          maxWidth: 720,
           margin: "0 auto",
-          padding: 0,
         }}
       >
-        {steps.map((s, i) => {
+        {steps.map((label, i) => {
           const done = i < currentIndex;
           const active = i === currentIndex;
           return (
             <li
-              key={s}
+              key={label}
               style={{
-                flex: 1,
-                textAlign: "center",
-                padding: "12px 4px",
-                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                gap: "0.25rem",
+                fontSize: "0.8rem",
                 fontWeight: active ? 700 : 400,
-                color: done ? "#1976d2" : active ? "#0f2a4a" : "#999",
-                borderBottom: active
-                  ? "3px solid #1976d2"
-                  : done
-                  ? "3px solid #1976d2"
-                  : "3px solid transparent",
-                transition: "all 0.2s",
+                color: done ? "#27ae60" : active ? "#0a2540" : "#999",
               }}
             >
               <span
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
                   width: 22,
                   height: 22,
                   borderRadius: "50%",
-                  background: done ? "#1976d2" : active ? "#0f2a4a" : "#e0e0e0",
-                  color: "#fff",
-                  fontSize: 11,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "0.7rem",
                   fontWeight: 700,
-                  marginBottom: 4,
-                  marginRight: 6,
+                  background: done ? "#27ae60" : active ? "#0a2540" : "#e0e0e0",
+                  color: done || active ? "#fff" : "#666",
                 }}
               >
                 {done ? "✓" : i + 1}
               </span>
-              {labels[s]}
+              {label}
+              {i < steps.length - 1 && (
+                <span style={{ color: "#ccc", margin: "0 0.25rem" }}>›</span>
+              )}
             </li>
           );
         })}
